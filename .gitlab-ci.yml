@@ -4,50 +4,74 @@ stages:
   - docker
   - deploy
 
+# Variables globales (à adapter ou à surcharger dans GitLab CI/CD Variables)
+variables:
+  AWS_DEFAULT_REGION: "eu-west-1"
+  IMAGE_TAG: "${CI_COMMIT_SHORT_SHA:-latest}"  # fallback si vide
+  IMAGE_NAME: "${AWS_ECR_REPOSITORY}:${IMAGE_TAG}"
+
+# Étape 1 : build Maven
 build:
   stage: build
   image: maven:3.9.1-openjdk-17
   script:
     - mvn clean package -DskipTests
+  artifacts:
+    paths:
+      - target/*.jar
 
+# Étape 2 : tests Maven
 test:
   stage: test
   image: maven:3.9.1-openjdk-17
   script:
     - mvn test
 
+# Étape 3 : Docker build & push vers AWS ECR
 docker_build:
   stage: docker
-  runs-on: ubuntu-latest
-  env:
-    AWS_ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
-    IMAGE_TAG: ${{ secrets.IMAGE_TAG }}
-    AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  steps:
-    - uses: actions/checkout@v3
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    # Installer AWS CLI
+    - apk add --no-cache python3 py3-pip
+    - pip3 install --no-cache-dir awscli
+    - aws --version
 
-    # Construire IMAGE_NAME
-    - name: Set IMAGE_NAME
-      run: |
-        echo "IMAGE_NAME=$AWS_ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+    # Vérifier les variables obligatoires
+    - |
+      if [ -z "$AWS_ECR_REPOSITORY" ]; then
+        echo "ERROR: AWS_ECR_REPOSITORY is not defined"
+        exit 1
+      fi
+      if [ -z "$IMAGE_TAG" ]; then
+        echo "ERROR: IMAGE_TAG is not defined"
+        exit 1
+      fi
+      echo "Using IMAGE_NAME=$IMAGE_NAME"
 
-    # Vérifier
-    - run: echo "Building Docker image $IMAGE_NAME"
+    # Login Docker vers ECR
+    - echo "$AWS_SECRET_ACCESS_KEY" | docker login --username AWS --password-stdin "$AWS_ECR_REPOSITORY"
 
-    # Login ECR
-    - run: |
-        aws ecr get-login-password --region $AWS_DEFAULT_REGION \
-        | docker login --username AWS --password-stdin $AWS_ECR_REPOSITORY
+  script:
+    - docker build -t "$IMAGE_NAME" .
+    - docker push "$IMAGE_NAME"
 
-    # Build et push Docker
-    - run: |
-        docker build -t $IMAGE_NAME .
-        docker push $IMAGE_NAME
-
+# Étape 4 : déploiement ECS
 deploy:
   stage: deploy
   image: amazon/aws-cli:latest
   script:
-    - aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE --force-new-deployment --region $AWS_DEFAULT_REGION
+    # Vérifier variables ECS
+    - |
+      if [ -z "$AWS_ECS_CLUSTER" ] || [ -z "$AWS_ECS_SERVICE" ]; then
+        echo "ERROR: AWS_ECS_CLUSTER or AWS_ECS_SERVICE not defined"
+        exit 1
+      fi
+    # Déployer
+    - aws ecs update-service \
+      --cluster "$AWS_ECS_CLUSTER" \
+      --service "$AWS_ECS_SERVICE" \
+      --force-new-deployment \
+      --region "$AWS_DEFAULT_REGION"
