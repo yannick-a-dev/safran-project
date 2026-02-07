@@ -4,9 +4,6 @@ stages:
   - docker
   - deploy
 
-variables:
-  IMAGE_NAME: $AWS_ECR_REPOSITORY:$IMAGE_TAG
-
 build:
   stage: build
   image: maven:3.9.1-openjdk-17
@@ -25,6 +22,8 @@ docker_build:
   services:
     - docker:dind
   script:
+    - IMAGE_NAME="$AWS_ECR_REPOSITORY:$IMAGE_TAG"
+    - echo "Building image $IMAGE_NAME"
     - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ECR_REPOSITORY
     - docker build -t $IMAGE_NAME .
     - docker push $IMAGE_NAME
