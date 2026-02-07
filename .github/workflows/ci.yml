@@ -1,13 +1,11 @@
 name: CI/CD Pipeline
 
-# Déclenche sur push ou PR sur la branche main
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
 
-# Variables globales
 env:
   IMAGE_NAME: ${{ secrets.AWS_ECR_REPOSITORY }}:${{ vars.IMAGE_TAG }}
 
