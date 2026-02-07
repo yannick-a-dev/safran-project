@@ -1,0 +1,86 @@
+# ==========================
+# Profil actif par défaut
+# ==========================
+spring:
+  profiles:
+    active: dev
+
+# ==========================
+# Profil DEV (local / Docker)
+# ==========================
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  application:
+    name: safran-projet
+
+  datasource:
+    url: jdbc:postgresql://postgres-dev:5432/pmdb
+    username: ${DB_USERNAME:pmuser}
+    password: ${DB_PASSWORD:pmpassword}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+  kafka:
+    bootstrap-servers: kafka-dev:9092
+    consumer:
+      group-id: sensor-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8080
+
+# ==========================
+# Profil PROD (AWS ECS)
+# ==========================
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  application:
+    name: safran-projet
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/postgres
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT:9092}
+    consumer:
+      group-id: sensor-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8080

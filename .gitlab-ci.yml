@@ -1,0 +1,36 @@
+stages:
+  - build
+  - test
+  - docker
+  - deploy
+
+variables:
+  IMAGE_NAME: $AWS_ECR_REPOSITORY:$IMAGE_TAG
+
+build:
+  stage: build
+  image: maven:3.9.1-openjdk-17
+  script:
+    - mvn clean package -DskipTests
+
+test:
+  stage: test
+  image: maven:3.9.1-openjdk-17
+  script:
+    - mvn test
+
+docker_build:
+  stage: docker
+  image: docker:20.10.16
+  services:
+    - docker:dind
+  script:
+    - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ECR_REPOSITORY
+    - docker build -t $IMAGE_NAME .
+    - docker push $IMAGE_NAME
+
+deploy:
+  stage: deploy
+  image: amazon/aws-cli:latest
+  script:
+    - aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE --force-new-deployment --region $AWS_DEFAULT_REGION
