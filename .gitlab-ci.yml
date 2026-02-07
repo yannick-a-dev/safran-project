@@ -4,13 +4,7 @@ stages:
   - docker
   - deploy
 
-# Variables globales (à adapter ou à surcharger dans GitLab CI/CD Variables)
-variables:
-  AWS_DEFAULT_REGION: "eu-west-1"
-  IMAGE_TAG: "${CI_COMMIT_SHORT_SHA:-latest}"  # fallback si vide
-  IMAGE_NAME: "${AWS_ECR_REPOSITORY}:${IMAGE_TAG}"
-
-# Étape 1 : build Maven
+# Étape 1 : Build Maven
 build:
   stage: build
   image: maven:3.9.1-openjdk-17
@@ -20,10 +14,11 @@ build:
     paths:
       - target/*.jar
 
-# Étape 2 : tests Maven
+# Étape 2 : Tests Maven
 test:
   stage: test
   image: maven:3.9.1-openjdk-17
+  needs: [build]
   script:
     - mvn test
 
@@ -33,6 +28,9 @@ docker_build:
   image: docker:24.0.5
   services:
     - docker:24.0.5-dind
+  needs: [test]
+  variables:
+    IMAGE_TAG: "${CI_COMMIT_SHORT_SHA:-latest}"  # fallback si vide
   before_script:
     # Installer AWS CLI
     - apk add --no-cache python3 py3-pip
@@ -49,7 +47,10 @@ docker_build:
         echo "ERROR: IMAGE_TAG is not defined"
         exit 1
       fi
-      echo "Using IMAGE_NAME=$IMAGE_NAME"
+
+    # Construire IMAGE_NAME dynamiquement
+    - export IMAGE_NAME="${AWS_ECR_REPOSITORY}:${IMAGE_TAG}"
+    - echo "Using IMAGE_NAME=$IMAGE_NAME"
 
     # Login Docker vers ECR
     - echo "$AWS_SECRET_ACCESS_KEY" | docker login --username AWS --password-stdin "$AWS_ECR_REPOSITORY"
@@ -58,10 +59,11 @@ docker_build:
     - docker build -t "$IMAGE_NAME" .
     - docker push "$IMAGE_NAME"
 
-# Étape 4 : déploiement ECS
+# Étape 4 : Déploiement ECS
 deploy:
   stage: deploy
   image: amazon/aws-cli:latest
+  needs: [docker_build]
   script:
     # Vérifier variables ECS
     - |
@@ -69,7 +71,8 @@ deploy:
         echo "ERROR: AWS_ECS_CLUSTER or AWS_ECS_SERVICE not defined"
         exit 1
       fi
-    # Déployer
+
+    # Déployer sur ECS
     - aws ecs update-service \
       --cluster "$AWS_ECS_CLUSTER" \
       --service "$AWS_ECS_SERVICE" \
