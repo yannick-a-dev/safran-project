@@ -1,7 +1,4 @@
 services:
-  # ==========================
-  # PostgreSQL
-  # ==========================
   postgres:
     image: postgres:15
     container_name: pm_postgres
