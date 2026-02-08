@@ -18,7 +18,7 @@ spring:
     name: safran-projet
 
   datasource:
-    url: jdbc:postgresql://postgres-dev:5432/pmdb
+    url: jdbc:postgresql://pm_postgres/pmdb
     username: ${DB_USERNAME:pmuser}
     password: ${DB_PASSWORD:pmpassword}
 
@@ -27,12 +27,8 @@ spring:
       ddl-auto: update
     show-sql: true
 
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
-
   kafka:
-    bootstrap-servers: kafka-dev:9092
+    bootstrap-servers: pm_kafka:9092
     consumer:
       group-id: sensor-group
       auto-offset-reset: earliest
@@ -66,10 +62,6 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
-
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
 
   kafka:
     bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT:9092}
@@ -118,6 +110,14 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
 
 server:
   port: 0
