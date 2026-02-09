@@ -117,8 +117,9 @@ jobs:
 
       - name: Prepare task definition for register
         run: |
-          jq '{
+          jq --arg EXEC_ROLE "${{ secrets.AWS_ECS_EXECUTION_ROLE }}" '{
             family: .family,
+            executionRoleArn: $EXEC_ROLE,
             networkMode: .networkMode,
             containerDefinitions: [
               .containerDefinitions[] | {
