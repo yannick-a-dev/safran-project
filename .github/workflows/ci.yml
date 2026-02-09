@@ -92,10 +92,40 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
 
+      - name: Get latest image digest
+        id: image_digest
+        run: |
+          DIGEST=$(aws ecr describe-images \
+            --repository-name my-app \
+            --image-ids imageTag=latest \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
+      - name: Get current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ secrets.AWS_ECS_TASK_DEFINITION }} \
+            --query 'taskDefinition' \
+            > taskdef.json
+
+      - name: Update task definition image
+        run: |
+          sed -i "s|\"image\": \".*\"|\"image\": \"${{ secrets.AWS_ECR_REPOSITORY }}:latest@${{ steps.image_digest.outputs.digest }}\"|" taskdef.json
+
+      - name: Register new task definition
+        id: register_task
+        run: |
+          NEW_TASK_DEF=$(aws ecs register-task-definition \
+            --cli-input-json file://taskdef.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "taskdef=$NEW_TASK_DEF" >> $GITHUB_OUTPUT
+
       - name: Deploy ECS Service
         run: |
           aws ecs update-service \
             --cluster ${{ secrets.AWS_ECS_CLUSTER }} \
             --service ${{ secrets.AWS_ECS_SERVICE }} \
-            --force-new-deployment \
-            --region ${{ secrets.AWS_DEFAULT_REGION }}
+            --task-definition ${{ steps.register_task.outputs.taskdef }} \
+            --force-new-deployment
