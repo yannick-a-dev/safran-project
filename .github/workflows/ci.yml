@@ -86,7 +86,7 @@ jobs:
     env:
       AWS_ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-      AWS_ECS_TASK_DEFINITION: ${{ secrets.AWS_ECS_TASK_DEFINITION }}
+      AWS_ECS_TASK_DEFINITION: my-app-task:2       # <-- mettre family:revision exact
       AWS_ECS_CLUSTER: ${{ secrets.AWS_ECS_CLUSTER }}
       AWS_ECS_SERVICE: ${{ secrets.AWS_ECS_SERVICE }}
     steps:
@@ -100,7 +100,6 @@ jobs:
       - name: Get latest image digest
         id: image_digest
         run: |
-          # Extraire le nom du repository depuis l'URL complète
           REPO_NAME=$(echo "${AWS_ECR_REPOSITORY}" | awk -F/ '{print $NF}')
           DIGEST=$(aws ecr describe-images \
             --repository-name "$REPO_NAME" \
@@ -119,7 +118,6 @@ jobs:
       - name: Update task definition image
         run: |
           IMAGE="${AWS_ECR_REPOSITORY}:latest@${{ steps.image_digest.outputs.digest }}"
-          # Mettre à jour uniquement le container ciblé
           jq --arg IMG "$IMAGE" \
              '.containerDefinitions[] | select(.name=="my-app-container") | .image=$IMG' \
              taskdef.json > taskdef-updated.json
