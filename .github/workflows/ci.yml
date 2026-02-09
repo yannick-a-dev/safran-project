@@ -86,7 +86,7 @@ jobs:
     env:
       AWS_ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-      AWS_ECS_TASK_DEFINITION: my-app-task:2       # <-- mettre family:revision exact
+      AWS_ECS_TASK_DEFINITION: my-app-task:2
       AWS_ECS_CLUSTER: ${{ secrets.AWS_ECS_CLUSTER }}
       AWS_ECS_SERVICE: ${{ secrets.AWS_ECS_SERVICE }}
     steps:
@@ -115,19 +115,34 @@ jobs:
             --query 'taskDefinition' \
             > taskdef.json
 
+      - name: Prepare task definition for register
+        run: |
+          jq '{
+            family: .family,
+            taskRoleArn: .taskRoleArn,
+            executionRoleArn: .executionRoleArn,
+            networkMode: .networkMode,
+            containerDefinitions: .containerDefinitions,
+            volumes: .volumes,
+            placementConstraints: .placementConstraints,
+            requiresCompatibilities: .requiresCompatibilities,
+            cpu: .cpu,
+            memory: .memory
+          }' taskdef.json > taskdef-register.json
+
       - name: Update task definition image
         run: |
           IMAGE="${AWS_ECR_REPOSITORY}:latest@${{ steps.image_digest.outputs.digest }}"
           jq --arg IMG "$IMAGE" \
              '.containerDefinitions[] | select(.name=="my-app-container") | .image=$IMG' \
-             taskdef.json > taskdef-updated.json
-          mv taskdef-updated.json taskdef.json
+             taskdef-register.json > taskdef-updated.json
+          mv taskdef-updated.json taskdef-register.json
 
       - name: Register new task definition
         id: register_task
         run: |
           NEW_TASK_DEF=$(aws ecs register-task-definition \
-            --cli-input-json file://taskdef.json \
+            --cli-input-json file://taskdef-register.json \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
           echo "taskdef=$NEW_TASK_DEF" >> $GITHUB_OUTPUT
