@@ -28,7 +28,6 @@ public class AlertController {
         return alertRepository.findAll();
     }
 
-    // Récupère les alertes pour un moteur spécifique
     @GetMapping("/engines/{id}/alerts")
     public List<Alert> getAlertsByEngine(@PathVariable Long id) {
         Engine engine = engineRepository.findById(id)
