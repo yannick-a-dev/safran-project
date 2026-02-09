@@ -14,7 +14,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 public class AlertController {
-
     private final AlertRepository alertRepository;
     private final EngineRepository engineRepository;
 
