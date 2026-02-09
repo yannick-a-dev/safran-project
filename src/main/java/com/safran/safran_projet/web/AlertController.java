@@ -21,7 +21,6 @@ public class AlertController {
         this.alertRepository = alertRepository;
         this.engineRepository = engineRepository;
     }
-
     @GetMapping("/alerts")
     public List<Alert> getAllAlerts() {
         return alertRepository.findAll();
