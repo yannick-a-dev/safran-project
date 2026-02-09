@@ -50,7 +50,7 @@ services:
       - kafka
       - postgres
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: prod
       DB_HOST: pm_postgres
       DB_PORT: 5432
       DB_USERNAME: pmuser

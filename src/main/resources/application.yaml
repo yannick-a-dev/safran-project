@@ -63,16 +63,8 @@ spring:
       ddl-auto: validate
     show-sql: false
 
-  kafka:
-    bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT:9092}
-    consumer:
-      group-id: sensor-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
 
 server:
   port: 8080
