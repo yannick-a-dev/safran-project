@@ -89,6 +89,10 @@ jobs:
       AWS_ECS_TASK_DEFINITION: my-app-task:2
       AWS_ECS_CLUSTER: ${{ secrets.AWS_ECS_CLUSTER }}
       AWS_ECS_SERVICE: ${{ secrets.AWS_ECS_SERVICE }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -117,7 +121,11 @@ jobs:
 
       - name: Prepare task definition for register
         run: |
-          jq --arg EXEC_ROLE "${{ secrets.AWS_ECS_EXECUTION_ROLE }}" '{
+          jq --arg EXEC_ROLE "${{ secrets.AWS_ECS_EXECUTION_ROLE }}" \
+             --arg DB_HOST "${DB_HOST}" \
+             --arg DB_PORT "${DB_PORT}" \
+             --arg DB_USERNAME "${DB_USERNAME}" \
+             --arg DB_PASSWORD "${DB_PASSWORD}" '{
             family: .family,
             executionRoleArn: $EXEC_ROLE,
             networkMode: .networkMode,
@@ -126,7 +134,12 @@ jobs:
                 name: .name,
                 image: .image,
                 essential: .essential,
-                environment: .environment,
+                environment: [
+                  {name: "DB_HOST", value: $DB_HOST},
+                  {name: "DB_PORT", value: $DB_PORT},
+                  {name: "DB_USERNAME", value: $DB_USERNAME},
+                  {name: "DB_PASSWORD", value: $DB_PASSWORD}
+                ],
                 environmentFiles: .environmentFiles,
                 mountPoints: .mountPoints,
                 volumesFrom: .volumesFrom,
