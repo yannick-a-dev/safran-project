@@ -13,9 +13,6 @@ services:
     networks:
       - safran-net
 
-  # ==========================
-  # Zookeeper (Kafka)
-  # ==========================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
     container_name: pm_zookeeper
