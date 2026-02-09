@@ -70,15 +70,13 @@ jobs:
       - name: Build Docker Image
         run: docker build -t "$IMAGE_NAME" .
 
-      - name: Push Docker Image
-        run: docker push "$IMAGE_NAME"
-
       - name: Tag image as latest
         run: docker tag "$IMAGE_NAME" "${AWS_ECR_REPOSITORY}:latest"
 
-      - name: Push latest tag
-        run: docker push "${AWS_ECR_REPOSITORY}:latest"
-
+      - name: Push Docker Images
+        run: |
+          docker push "$IMAGE_NAME"                # push SHA tag
+          docker push "${AWS_ECR_REPOSITORY}:latest"  # push latest
 
   deploy:
     name: Deploy to ECS
@@ -95,8 +93,9 @@ jobs:
       - name: Get latest image digest
         id: image_digest
         run: |
+          REPO_NAME="${{ secrets.AWS_ECR_REPOSITORY##*/ }}"
           DIGEST=$(aws ecr describe-images \
-            --repository-name my-app \
+            --repository-name "$REPO_NAME" \
             --image-ids imageTag=latest \
             --query 'imageDetails[0].imageDigest' \
             --output text)
@@ -111,7 +110,11 @@ jobs:
 
       - name: Update task definition image
         run: |
-          sed -i "s|\"image\": \".*\"|\"image\": \"${{ secrets.AWS_ECR_REPOSITORY }}:latest@${{ steps.image_digest.outputs.digest }}\"|" taskdef.json
+          IMAGE="${{ secrets.AWS_ECR_REPOSITORY }}:latest@${{ steps.image_digest.outputs.digest }}"
+          jq --arg IMG "$IMAGE" \
+             '.containerDefinitions[] | select(.name=="my-app-container") | .image=$IMG' \
+             taskdef.json > taskdef-updated.json
+          mv taskdef-updated.json taskdef.json
 
       - name: Register new task definition
         id: register_task
