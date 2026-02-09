@@ -119,8 +119,6 @@ jobs:
         run: |
           jq '{
             family: .family,
-            taskRoleArn: .taskRoleArn,
-            executionRoleArn: .executionRoleArn,
             networkMode: .networkMode,
             containerDefinitions: [
               .containerDefinitions[] | {
@@ -137,8 +135,6 @@ jobs:
                 portMappings: .portMappings
               }
             ],
-            volumes: .volumes,
-            placementConstraints: .placementConstraints,
             requiresCompatibilities: .requiresCompatibilities,
             cpu: (.cpu | tostring),
             memory: (.memory | tostring)
