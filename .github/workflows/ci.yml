@@ -122,20 +122,35 @@ jobs:
             taskRoleArn: .taskRoleArn,
             executionRoleArn: .executionRoleArn,
             networkMode: .networkMode,
-            containerDefinitions: .containerDefinitions,
+            containerDefinitions: [
+              .containerDefinitions[] | {
+                name: .name,
+                image: .image,
+                essential: .essential,
+                environment: .environment,
+                environmentFiles: .environmentFiles,
+                mountPoints: .mountPoints,
+                volumesFrom: .volumesFrom,
+                ulimits: .ulimits,
+                logConfiguration: .logConfiguration,
+                systemControls: .systemControls,
+                portMappings: .portMappings
+              }
+            ],
             volumes: .volumes,
             placementConstraints: .placementConstraints,
             requiresCompatibilities: .requiresCompatibilities,
-            cpu: .cpu,
-            memory: .memory
+            cpu: (.cpu | tostring),
+            memory: (.memory | tostring)
           }' taskdef.json > taskdef-register.json
 
       - name: Update task definition image
         run: |
           IMAGE="${AWS_ECR_REPOSITORY}:latest@${{ steps.image_digest.outputs.digest }}"
-          jq --arg IMG "$IMAGE" \
-             '.containerDefinitions[] | select(.name=="my-app-container") | .image=$IMG' \
-             taskdef-register.json > taskdef-updated.json
+          jq --arg IMG "$IMAGE" '
+            .containerDefinitions[] |=
+              if .name=="my-app-container" then .image=$IMG else . end
+          ' taskdef-register.json > taskdef-updated.json
           mv taskdef-updated.json taskdef-register.json
 
       - name: Register new task definition
