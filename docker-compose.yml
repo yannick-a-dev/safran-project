@@ -24,9 +24,6 @@ services:
     networks:
       - safran-net
 
-  # ==========================
-  # Kafka
-  # ==========================
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     container_name: pm_kafka
