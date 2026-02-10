@@ -34,7 +34,7 @@ services:
     environment:
       KAFKA_ZOOKEEPER_CONNECT: pm_zookeeper:2181
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://pm_kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       ALLOW_PLAINTEXT_LISTENER: "yes"
     networks:
@@ -50,7 +50,7 @@ services:
       - kafka
       - postgres
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: dev
       DB_HOST: pm_postgres
       DB_PORT: 5432
       DB_USERNAME: pmuser

@@ -26,6 +26,6 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 # Variable optionnelle pour le profil Spring Boot
-ENV SPRING_PROFILES_ACTIVE=prod
+ENV SPRING_PROFILES_ACTIVE=dev
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

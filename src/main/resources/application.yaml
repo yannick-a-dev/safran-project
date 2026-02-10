@@ -18,7 +18,7 @@ spring:
     name: safran-projet
 
   datasource:
-    url: jdbc:postgresql://pm_postgres/pmdb
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/pmdb
     username: ${DB_USERNAME:pmuser}
     password: ${DB_PASSWORD:pmpassword}
 
@@ -28,7 +28,7 @@ spring:
     show-sql: true
 
   kafka:
-    bootstrap-servers: pm_kafka:9092
+    bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
     consumer:
       group-id: sensor-group
       auto-offset-reset: earliest
@@ -39,7 +39,7 @@ spring:
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 server:
-  port: 8080
+  port: ${SPRING_PORT:8081}
 
 # ==========================
 # Profil PROD (AWS ECS)
@@ -54,7 +54,7 @@ spring:
     name: safran-projet
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/postgres
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/pmdb
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
@@ -63,12 +63,23 @@ spring:
       ddl-auto: validate
     show-sql: false
 
-  autoconfigure:
-    exclude: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT:9092}
+    consumer:
+      group-id: sensor-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 server:
   port: 8080
 
+# ==========================
+# Profil TEST (pour les tests unitaires / Maven)
+# ==========================
 ---
 spring:
   config:
